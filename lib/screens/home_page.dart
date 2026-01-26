@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'menu_detail_view.dart';
+import 'tracing_demo_screen.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -14,27 +14,24 @@ class HomePage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 2,
-          ),
-          itemCount: 8,
-          itemBuilder: (context, index) {
-            return ElevatedButton(
+        child: GridView.count(
+          crossAxisCount: 2,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 2,
+          children: [
+            ElevatedButton(
               onPressed: () {
-                if (index == 0) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const MenuDetailView()),
-                  );
-                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const TracingDemoScreen(),
+                  ),
+                );
               },
-              child: Text('Menu_$index'),
-            );
-          },
+              child: const Text('Tracing Demo'),
+            ),
+          ],
         ),
       ),
     );
