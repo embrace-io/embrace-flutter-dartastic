@@ -1,19 +1,13 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:embrace_flutter_dartastic/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App renders with navigation', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Errors'), findsOneWidget);
+    expect(find.text('Hello, Dartastic!'), findsOneWidget);
   });
 }
