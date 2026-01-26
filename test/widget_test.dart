@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:embrace_flutter_dartastic/main.dart';
+import 'package:embrace_flutter_dartastic/app.dart';
 
 void main() {
   testWidgets('App renders with navigation', (WidgetTester tester) async {
