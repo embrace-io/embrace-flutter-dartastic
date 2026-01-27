@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'tracing_demo_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -21,14 +20,7 @@ class HomePage extends StatelessWidget {
           childAspectRatio: 2,
           children: [
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TracingDemoScreen(),
-                  ),
-                );
-              },
+              onPressed: () => context.push('/tracing'),
               child: const Text('Tracing Demo'),
             ),
           ],
