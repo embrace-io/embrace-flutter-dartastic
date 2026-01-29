@@ -23,7 +23,7 @@ class TracingDemoScreen extends StatelessWidget {
           SizedBox(height: 16),
           _DemoSection(
             title: 'Nested Spans',
-            child: Placeholder(fallbackHeight: 100),
+            child: _NestedSpanDemo(),
           ),
           SizedBox(height: 16),
           _DemoSection(
@@ -108,6 +108,170 @@ class _SingleSpanDemoState extends State<_SingleSpanDemo> {
           _SpanDetailRow(label: 'Duration', value: '$_durationMs ms'),
         ],
       ],
+    );
+  }
+}
+
+class _SpanInfo {
+  const _SpanInfo({
+    required this.name,
+    required this.traceId,
+    required this.spanId,
+    required this.durationMs,
+    required this.relativeStartMs,
+  });
+
+  final String name;
+  final String traceId;
+  final String spanId;
+  final int durationMs;
+  final int relativeStartMs;
+}
+
+class _NestedSpanDemo extends StatefulWidget {
+  const _NestedSpanDemo();
+
+  @override
+  State<_NestedSpanDemo> createState() => _NestedSpanDemoState();
+}
+
+class _NestedSpanDemoState extends State<_NestedSpanDemo> {
+  bool _isLoading = false;
+  _SpanInfo? _parentInfo;
+  List<_SpanInfo> _childInfos = [];
+
+  Future<void> _createNestedSpans() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final parentStopwatch = Stopwatch()..start();
+    final parentSpan = FlutterOTel.tracer.startSpan('demo.parent_operation');
+
+    final childInfos = <_SpanInfo>[];
+
+    for (int i = 1; i <= 3; i++) {
+      final relativeStart = parentStopwatch.elapsedMilliseconds;
+      final childStopwatch = Stopwatch()..start();
+
+      final childSpan = FlutterOTel.tracer.startSpan(
+        'demo.child_step_$i',
+        parentSpan: parentSpan,
+      );
+
+      final delay = Random().nextInt(301) + 200; // 200-500ms
+      await Future.delayed(Duration(milliseconds: delay));
+
+      childSpan.end();
+      childStopwatch.stop();
+
+      childInfos.add(_SpanInfo(
+        name: 'demo.child_step_$i',
+        traceId: childSpan.spanContext.traceId.toString(),
+        spanId: childSpan.spanContext.spanId.toString(),
+        durationMs: childStopwatch.elapsedMilliseconds,
+        relativeStartMs: relativeStart,
+      ));
+    }
+
+    parentSpan.end();
+    parentStopwatch.stop();
+
+    setState(() {
+      _isLoading = false;
+      _parentInfo = _SpanInfo(
+        name: 'demo.parent_operation',
+        traceId: parentSpan.spanContext.traceId.toString(),
+        spanId: parentSpan.spanContext.spanId.toString(),
+        durationMs: parentStopwatch.elapsedMilliseconds,
+        relativeStartMs: 0,
+      );
+      _childInfos = childInfos;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _createNestedSpans,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Create Nested Spans'),
+          ),
+        ),
+        if (_parentInfo != null) ...[
+          const SizedBox(height: 16),
+          _SpanDetailRow(label: 'Trace ID', value: _parentInfo!.traceId),
+          const SizedBox(height: 12),
+          _SpanTreeItem(spanInfo: _parentInfo!, indent: 0),
+          ..._childInfos.map(
+            (info) => _SpanTreeItem(spanInfo: info, indent: 1),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _SpanTreeItem extends StatelessWidget {
+  const _SpanTreeItem({
+    required this.spanInfo,
+    required this.indent,
+  });
+
+  final _SpanInfo spanInfo;
+  final int indent;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final borderColor =
+        indent == 0 ? colorScheme.primary : colorScheme.secondary;
+
+    return Padding(
+      padding: EdgeInsets.only(left: indent * 24.0, top: 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(left: BorderSide(width: 3, color: borderColor)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                spanInfo.name,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Span ID: ${spanInfo.spanId}',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                    ),
+              ),
+              Text(
+                'Duration: ${spanInfo.durationMs} ms | Start: +${spanInfo.relativeStartMs} ms',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
