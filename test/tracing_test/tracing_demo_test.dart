@@ -47,7 +47,7 @@ void main() {
 
       expect(find.text('Single Span'), findsOneWidget);
       expect(find.text('Create Span'), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsNWidgets(2));
     });
 
     testWidgets('shows loading state while span is active', (tester) async {
@@ -73,14 +73,14 @@ void main() {
       await tester.pump();
 
       final button = tester.widget<ElevatedButton>(
-        find.byType(ElevatedButton),
+        find.byType(ElevatedButton).first,
       );
       expect(button.onPressed, isNull);
 
       await tester.pump(const Duration(seconds: 2));
 
       final enabledButton = tester.widget<ElevatedButton>(
-        find.byType(ElevatedButton),
+        find.byType(ElevatedButton).first,
       );
       expect(enabledButton.onPressed, isNotNull);
     });
@@ -173,6 +173,170 @@ void main() {
       expect(find.text('Trace ID:'), findsOneWidget);
       expect(find.text('Span ID:'), findsOneWidget);
       expect(find.text('Duration:'), findsOneWidget);
+    });
+  });
+
+  group('TracingDemoScreen - Nested Span Demo', () {
+    setUpAll(() async {
+      // FlutterOTel is already initialized from the previous group's setUpAll
+    });
+
+    Widget buildTestWidget() {
+      return const MaterialApp(
+        home: TracingDemoScreen(),
+      );
+    }
+
+    testWidgets('displays Create Nested Spans button', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      expect(find.text('Nested Spans'), findsOneWidget);
+      expect(find.text('Create Nested Spans'), findsOneWidget);
+    });
+
+    testWidgets('shows loading state while creating nested spans',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Create Nested Spans'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Create Nested Spans'), findsOneWidget);
+    });
+
+    testWidgets('button is disabled during loading', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump();
+
+      final button = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton).at(1),
+      );
+      expect(button.onPressed, isNull);
+
+      await tester.pump(const Duration(seconds: 2));
+
+      final enabledButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton).at(1),
+      );
+      expect(enabledButton.onPressed, isNotNull);
+    });
+
+    testWidgets('displays parent and child span names after creation',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(find.text('demo.parent_operation'), findsOneWidget);
+      expect(find.text('demo.child_step_1'), findsOneWidget);
+      expect(find.text('demo.child_step_2'), findsOneWidget);
+      expect(find.text('demo.child_step_3'), findsOneWidget);
+    });
+
+    testWidgets('displays shared trace ID', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(find.text('Trace ID:'), findsOneWidget);
+    });
+
+    testWidgets('displays span IDs for parent and all children',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump(const Duration(seconds: 2));
+
+      final spanIdTexts = find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.data != null &&
+            widget.data!.startsWith('Span ID: '),
+      );
+      expect(spanIdTexts, findsNWidgets(4));
+    });
+
+    testWidgets('displays duration and relative start for each span',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump(const Duration(seconds: 2));
+
+      final durationTexts = find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.data != null &&
+            RegExp(r'^Duration: \d+ ms \| Start: \+\d+ ms$')
+                .hasMatch(widget.data!),
+      );
+      expect(durationTexts, findsNWidgets(4));
+    });
+
+    testWidgets('parent span appears before child spans in tree',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump(const Duration(seconds: 2));
+
+      // Collect all span name widgets in tree order
+      final spanNames = tester
+          .widgetList<Text>(find.byWidgetPredicate(
+            (widget) =>
+                widget is Text &&
+                widget.data != null &&
+                widget.data!.startsWith('demo.'),
+          ))
+          .map((t) => t.data!)
+          .toList();
+
+      expect(spanNames, [
+        'demo.parent_operation',
+        'demo.child_step_1',
+        'demo.child_step_2',
+        'demo.child_step_3',
+      ]);
+    });
+
+    testWidgets('all span IDs are unique 16-hex-character strings',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Nested Spans'));
+      await tester.pump(const Duration(seconds: 2));
+
+      final spanIdWidgets = tester.widgetList<Text>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Text &&
+              widget.data != null &&
+              widget.data!.startsWith('Span ID: '),
+        ),
+      );
+
+      final spanIds = spanIdWidgets
+          .map((text) => text.data!.replaceFirst('Span ID: ', ''))
+          .toList();
+
+      expect(spanIds.length, 4);
+      for (final id in spanIds) {
+        expect(RegExp(r'^[0-9a-f]{16}$').hasMatch(id), isTrue,
+            reason: 'Span ID "$id" should be 16 hex characters');
+      }
+      expect(spanIds.toSet().length, 4,
+          reason: 'All 4 span IDs should be unique');
     });
   });
 }
