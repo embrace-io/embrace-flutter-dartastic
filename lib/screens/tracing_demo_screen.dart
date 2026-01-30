@@ -28,7 +28,7 @@ class TracingDemoScreen extends StatelessWidget {
           SizedBox(height: 16),
           _DemoSection(
             title: 'Span Events',
-            child: Placeholder(fallbackHeight: 100),
+            child: _SpanEventsDemo(),
           ),
           SizedBox(height: 16),
           _DemoSection(
@@ -128,6 +128,18 @@ class _SpanInfo {
   final int relativeStartMs;
 }
 
+class _EventInfo {
+  const _EventInfo({
+    required this.name,
+    required this.relativeMs,
+    required this.attributes,
+  });
+
+  final String name;
+  final int relativeMs;
+  final Map<String, String> attributes;
+}
+
 class _NestedSpanDemo extends StatefulWidget {
   const _NestedSpanDemo();
 
@@ -218,6 +230,160 @@ class _NestedSpanDemoState extends State<_NestedSpanDemo> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class _SpanEventsDemo extends StatefulWidget {
+  const _SpanEventsDemo();
+
+  @override
+  State<_SpanEventsDemo> createState() => _SpanEventsDemoState();
+}
+
+class _SpanEventsDemoState extends State<_SpanEventsDemo> {
+  bool _isLoading = false;
+  String? _traceId;
+  String? _spanId;
+  int? _durationMs;
+  List<_EventInfo> _events = [];
+
+  Future<void> _createSpanWithEvents() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final stopwatch = Stopwatch()..start();
+    final span = FlutterOTel.tracer.startSpan('demo.operation_with_events');
+
+    span.addEventNow('operation.started');
+    final startedMs = stopwatch.elapsedMilliseconds;
+
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    span.addEventNow(
+      'checkpoint.reached',
+      {'checkpoint.name': 'validation'}.toAttributes(),
+    );
+    final checkpointMs = stopwatch.elapsedMilliseconds;
+
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    span.addEventNow('operation.completed');
+    final completedMs = stopwatch.elapsedMilliseconds;
+
+    span.end();
+    stopwatch.stop();
+
+    setState(() {
+      _isLoading = false;
+      _traceId = span.spanContext.traceId.toString();
+      _spanId = span.spanContext.spanId.toString();
+      _durationMs = stopwatch.elapsedMilliseconds;
+      _events = [
+        _EventInfo(
+          name: 'operation.started',
+          relativeMs: startedMs,
+          attributes: {},
+        ),
+        _EventInfo(
+          name: 'checkpoint.reached',
+          relativeMs: checkpointMs,
+          attributes: {'checkpoint.name': 'validation'},
+        ),
+        _EventInfo(
+          name: 'operation.completed',
+          relativeMs: completedMs,
+          attributes: {},
+        ),
+      ];
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _createSpanWithEvents,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Create Span with Events'),
+          ),
+        ),
+        if (_traceId != null) ...[
+          const SizedBox(height: 16),
+          _SpanDetailRow(label: 'Trace ID', value: _traceId!),
+          const SizedBox(height: 8),
+          _SpanDetailRow(label: 'Span ID', value: _spanId!),
+          const SizedBox(height: 8),
+          _SpanDetailRow(label: 'Duration', value: '$_durationMs ms'),
+          const SizedBox(height: 12),
+          ..._events.map(
+            (event) => _EventTimelineItem(event: event),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _EventTimelineItem extends StatelessWidget {
+  const _EventTimelineItem({required this.event});
+
+  final _EventInfo event;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(
+            left: BorderSide(width: 3, color: colorScheme.tertiary),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                event.name,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'monospace',
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '+${event.relativeMs}ms',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontFamily: 'monospace',
+                    ),
+              ),
+              if (event.attributes.isNotEmpty)
+                ...event.attributes.entries.map(
+                  (entry) => Text(
+                    '${entry.key}: ${entry.value}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                        ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

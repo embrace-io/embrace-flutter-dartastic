@@ -47,7 +47,7 @@ void main() {
 
       expect(find.text('Single Span'), findsOneWidget);
       expect(find.text('Create Span'), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsNWidgets(2));
+      expect(find.byType(ElevatedButton), findsNWidgets(3));
     });
 
     testWidgets('shows loading state while span is active', (tester) async {
@@ -337,6 +337,129 @@ void main() {
       }
       expect(spanIds.toSet().length, 4,
           reason: 'All 4 span IDs should be unique');
+    });
+  });
+
+  group('TracingDemoScreen - Span Events Demo', () {
+    Widget buildTestWidget() {
+      return const MaterialApp(
+        home: TracingDemoScreen(),
+      );
+    }
+
+    testWidgets('displays Create Span with Events button', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      expect(find.text('Span Events'), findsOneWidget);
+      expect(find.text('Create Span with Events'), findsOneWidget);
+    });
+
+    testWidgets('shows loading state while creating span with events',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Span with Events'));
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Create Span with Events'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Create Span with Events'), findsOneWidget);
+    });
+
+    testWidgets('button is disabled during loading', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Span with Events'));
+      await tester.pump();
+
+      final button = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton).at(2),
+      );
+      expect(button.onPressed, isNull);
+
+      await tester.pump(const Duration(seconds: 1));
+
+      final enabledButton = tester.widget<ElevatedButton>(
+        find.byType(ElevatedButton).at(2),
+      );
+      expect(enabledButton.onPressed, isNotNull);
+    });
+
+    testWidgets('displays Trace ID, Span ID, and Duration after creation',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Span with Events'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('Trace ID:'), findsOneWidget);
+      expect(find.text('Span ID:'), findsOneWidget);
+      expect(find.text('Duration:'), findsOneWidget);
+    });
+
+    testWidgets('displays all 3 event names after creation', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Span with Events'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('operation.started'), findsOneWidget);
+      expect(find.text('checkpoint.reached'), findsOneWidget);
+      expect(find.text('operation.completed'), findsOneWidget);
+    });
+
+    testWidgets('events show relative timestamps', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Span with Events'));
+      await tester.pump(const Duration(seconds: 1));
+
+      final timestampTexts = find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.data != null &&
+            RegExp(r'^\+\d+ms$').hasMatch(widget.data!),
+      );
+      expect(timestampTexts, findsNWidgets(3));
+    });
+
+    testWidgets('checkpoint.reached event displays attribute',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Span with Events'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('checkpoint.name: validation'), findsOneWidget);
+    });
+
+    testWidgets('events appear in chronological order', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+
+      await tester.tap(find.text('Create Span with Events'));
+      await tester.pump(const Duration(seconds: 1));
+
+      final eventNames = tester
+          .widgetList<Text>(find.byWidgetPredicate(
+            (widget) =>
+                widget is Text &&
+                widget.data != null &&
+                (widget.data == 'operation.started' ||
+                    widget.data == 'checkpoint.reached' ||
+                    widget.data == 'operation.completed'),
+          ))
+          .map((t) => t.data!)
+          .toList();
+
+      expect(eventNames, [
+        'operation.started',
+        'checkpoint.reached',
+        'operation.completed',
+      ]);
     });
   });
 }
