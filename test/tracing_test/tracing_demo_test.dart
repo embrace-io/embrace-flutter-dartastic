@@ -47,7 +47,7 @@ void main() {
 
       expect(find.text('Single Span'), findsOneWidget);
       expect(find.text('Create Span'), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsNWidgets(3));
+      expect(find.byType(ElevatedButton), findsNWidgets(6));
     });
 
     testWidgets('shows loading state while span is active', (tester) async {
@@ -460,6 +460,176 @@ void main() {
         'checkpoint.reached',
         'operation.completed',
       ]);
+    });
+  });
+
+  group('TracingDemoScreen - Span Status Demo', () {
+    Widget buildTestWidget() {
+      return const MaterialApp(
+        home: TracingDemoScreen(),
+      );
+    }
+
+    Future<void> scrollToStatusSection(WidgetTester tester) async {
+      await tester.ensureVisible(find.text('OK Status'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('displays three status buttons', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      expect(find.text('Span Status'), findsOneWidget);
+      expect(find.text('OK Status'), findsOneWidget);
+      expect(find.text('Error Status'), findsOneWidget);
+      expect(find.text('Unset Status'), findsOneWidget);
+    });
+
+    testWidgets('shows loading state when OK Status tapped', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      await tester.tap(find.text('OK Status'));
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('OK Status'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('OK Status'), findsOneWidget);
+    });
+
+    testWidgets('shows loading state when Error Status tapped', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      await tester.tap(find.text('Error Status'));
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Error Status'), findsNothing);
+
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('Error Status'), findsOneWidget);
+    });
+
+    testWidgets('OK Status creates span and shows green indicator',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      await tester.tap(find.text('OK Status'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('demo.status_ok'), findsOneWidget);
+      expect(find.text('Status: ok'), findsOneWidget);
+
+      final statusIcon = tester.widget<Icon>(find.byWidgetPredicate(
+        (widget) =>
+            widget is Icon &&
+            widget.icon == Icons.circle &&
+            widget.color == Colors.green,
+      ));
+      expect(statusIcon, isNotNull);
+    });
+
+    testWidgets(
+        'Error Status creates span and shows red indicator with description',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      await tester.tap(find.text('Error Status'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('demo.status_error'), findsOneWidget);
+      expect(find.text('Status: error'), findsOneWidget);
+      expect(find.text('Simulated error for demo'), findsOneWidget);
+
+      final statusIcon = tester.widget<Icon>(find.byWidgetPredicate(
+        (widget) =>
+            widget is Icon &&
+            widget.icon == Icons.circle &&
+            widget.color == Colors.red,
+      ));
+      expect(statusIcon, isNotNull);
+    });
+
+    testWidgets('Unset Status creates span and shows gray indicator',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      await tester.tap(find.text('Unset Status'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('demo.status_unset'), findsOneWidget);
+      expect(find.text('Status: unset'), findsOneWidget);
+
+      final statusIcon = tester.widget<Icon>(find.byWidgetPredicate(
+        (widget) =>
+            widget is Icon &&
+            widget.icon == Icons.circle &&
+            widget.color == Colors.grey,
+      ));
+      expect(statusIcon, isNotNull);
+    });
+
+    testWidgets('each button creates distinctly named span', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      await tester.tap(find.text('OK Status'));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.ensureVisible(find.text('Error Status'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Error Status'));
+      await tester.pump(const Duration(seconds: 1));
+
+      await tester.ensureVisible(find.text('Unset Status'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Unset Status'));
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('demo.status_ok'), findsOneWidget);
+      expect(find.text('demo.status_error'), findsOneWidget);
+      expect(find.text('demo.status_unset'), findsOneWidget);
+    });
+
+    testWidgets('buttons disabled during loading', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await scrollToStatusSection(tester);
+
+      await tester.tap(find.text('OK Status'));
+      await tester.pump();
+
+      // Find all 3 status buttons (indices 3, 4, 5 — after the first 3 demo buttons)
+      final buttons = tester.widgetList<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+      // The span status buttons are the last 3
+      final statusButtons = buttons.toList().sublist(3);
+      for (final button in statusButtons) {
+        expect(button.onPressed, isNull,
+            reason: 'All status buttons should be disabled during loading');
+      }
+
+      await tester.pump(const Duration(seconds: 1));
+
+      final enabledButtons = tester.widgetList<ElevatedButton>(
+        find.byType(ElevatedButton),
+      );
+      final enabledStatusButtons = enabledButtons.toList().sublist(3);
+      for (final button in enabledStatusButtons) {
+        expect(button.onPressed, isNotNull,
+            reason:
+                'All status buttons should be enabled after loading completes');
+      }
     });
   });
 }
