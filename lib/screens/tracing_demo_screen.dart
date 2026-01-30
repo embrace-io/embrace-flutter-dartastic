@@ -33,7 +33,7 @@ class TracingDemoScreen extends StatelessWidget {
           SizedBox(height: 16),
           _DemoSection(
             title: 'Span Status',
-            child: Placeholder(fallbackHeight: 100),
+            child: _SpanStatusDemo(),
           ),
         ],
       ),
@@ -383,6 +383,190 @@ class _EventTimelineItem extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _StatusResult {
+  const _StatusResult({
+    required this.spanName,
+    required this.traceId,
+    required this.spanId,
+    required this.statusCode,
+    this.description,
+  });
+
+  final String spanName;
+  final String traceId;
+  final String spanId;
+  final String statusCode;
+  final String? description;
+}
+
+class _SpanStatusDemo extends StatefulWidget {
+  const _SpanStatusDemo();
+
+  @override
+  State<_SpanStatusDemo> createState() => _SpanStatusDemoState();
+}
+
+class _SpanStatusDemoState extends State<_SpanStatusDemo> {
+  String? _activeButton;
+  final List<_StatusResult> _results = [];
+
+  bool get _isLoading => _activeButton != null;
+
+  Future<void> _createSpanWithStatus(
+    String spanName,
+    SpanStatusCode statusCode, {
+    String? description,
+  }) async {
+    setState(() {
+      _activeButton = spanName;
+    });
+
+    final span = FlutterOTel.tracer.startSpan(spanName);
+
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    span.setStatus(statusCode, description);
+    span.end();
+
+    setState(() {
+      _activeButton = null;
+      _results.add(_StatusResult(
+        spanName: spanName,
+        traceId: span.spanContext.traceId.toString(),
+        spanId: span.spanContext.spanId.toString(),
+        statusCode: statusCode.name.toLowerCase(),
+        description: description,
+      ));
+    });
+  }
+
+  Widget _buildButton({
+    required String label,
+    required String spanName,
+    required SpanStatusCode statusCode,
+    String? description,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading
+            ? null
+            : () => _createSpanWithStatus(
+                  spanName,
+                  statusCode,
+                  description: description,
+                ),
+        child: _activeButton == spanName
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(label),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildButton(
+          label: 'OK Status',
+          spanName: 'demo.status_ok',
+          statusCode: SpanStatusCode.Ok,
+        ),
+        const SizedBox(height: 8),
+        _buildButton(
+          label: 'Error Status',
+          spanName: 'demo.status_error',
+          statusCode: SpanStatusCode.Error,
+          description: 'Simulated error for demo',
+        ),
+        const SizedBox(height: 8),
+        _buildButton(
+          label: 'Unset Status',
+          spanName: 'demo.status_unset',
+          statusCode: SpanStatusCode.Unset,
+        ),
+        ..._results.map((result) => _StatusResultItem(result: result)),
+      ],
+    );
+  }
+}
+
+class _StatusResultItem extends StatelessWidget {
+  const _StatusResultItem({required this.result});
+
+  final _StatusResult result;
+
+  Color _statusColor() {
+    switch (result.statusCode) {
+      case 'ok':
+        return Colors.green;
+      case 'error':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            result.spanName,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(Icons.circle, size: 12, color: _statusColor()),
+              const SizedBox(width: 6),
+              Text(
+                'Status: ${result.statusCode}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: _statusColor(),
+                    ),
+              ),
+            ],
+          ),
+          if (result.description != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              result.description!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                  ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            'Trace ID: ${result.traceId}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                ),
+          ),
+          Text(
+            'Span ID: ${result.spanId}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontFamily: 'monospace',
+                ),
+          ),
+        ],
       ),
     );
   }
