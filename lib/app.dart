@@ -3,6 +3,7 @@ import 'package:flutterrific_opentelemetry/flutterrific_opentelemetry.dart';
 import 'package:go_router/go_router.dart';
 
 import 'screens/main_screen.dart';
+import 'screens/metrics_demo_screen.dart';
 import 'screens/tracing_demo_screen.dart';
 
 final _router = GoRouter(
@@ -15,6 +16,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/tracing',
       builder: (context, state) => const TracingDemoScreen(),
+    ),
+    GoRoute(
+      path: '/metrics',
+      builder: (context, state) => const MetricsDemoScreen(),
     ),
   ],
 );
