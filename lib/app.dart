@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutterrific_opentelemetry/flutterrific_opentelemetry.dart';
 import 'package:go_router/go_router.dart';
 
+import 'screens/lifecycle_demo_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/metrics_demo_screen.dart';
 import 'screens/tracing_demo_screen.dart';
@@ -20,6 +21,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/metrics',
       builder: (context, state) => const MetricsDemoScreen(),
+    ),
+    GoRoute(
+      path: '/lifecycle',
+      builder: (context, state) => const LifecycleDemoScreen(),
     ),
   ],
 );
