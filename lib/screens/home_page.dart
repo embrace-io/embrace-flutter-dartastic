@@ -23,6 +23,10 @@ class HomePage extends StatelessWidget {
               onPressed: () => context.push('/tracing'),
               child: const Text('Tracing Demo'),
             ),
+            ElevatedButton(
+              onPressed: () => context.push('/metrics'),
+              child: const Text('Metrics Demo'),
+            ),
           ],
         ),
       ),
