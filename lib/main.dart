@@ -4,8 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutterrific_opentelemetry/flutterrific_opentelemetry.dart';
 
 import 'app.dart';
+import 'screens/lifecycle_demo/foreground_tracker.dart';
+import 'screens/lifecycle_demo/launch_tracker.dart';
+import 'screens/lifecycle_demo/lifecycle_metrics.dart';
 
 void main() {
+  final mainStartTime = DateTime.now();
+  LaunchTracker.instance.recordMainStart(mainStartTime);
+
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterOTel.reportError(
       'FlutterError.onError',
@@ -26,6 +32,10 @@ void main() {
         'service.namespace': 'testing',
       }.toAttributes(),
     );
+
+    LifecycleMetrics.instance.initialize();
+    LaunchTracker.instance.initialize();
+    ForegroundTracker.instance.initialize();
 
     runApp(const MyApp());
   }, (error, stack) {
