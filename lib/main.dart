@@ -7,6 +7,9 @@ import 'app.dart';
 import 'screens/lifecycle_demo/foreground_tracker.dart';
 import 'screens/lifecycle_demo/launch_tracker.dart';
 import 'screens/lifecycle_demo/lifecycle_metrics.dart';
+import 'screens/performance_demo/frame_metrics_exporter.dart';
+import 'screens/performance_demo/frame_rate_tracker.dart';
+import 'screens/performance_demo/jank_detector.dart';
 
 void main() {
   final mainStartTime = DateTime.now();
@@ -36,6 +39,9 @@ void main() {
     LifecycleMetrics.instance.initialize();
     LaunchTracker.instance.initialize();
     ForegroundTracker.instance.initialize();
+    JankDetector.instance.initialize();
+    FrameMetricsExporter.instance.initialize();
+    FrameRateTracker.instance.start();
 
     runApp(const MyApp());
   }, (error, stack) {

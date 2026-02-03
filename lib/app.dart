@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'screens/lifecycle_demo_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/metrics_demo_screen.dart';
+import 'screens/performance_demo_screen.dart';
 import 'screens/tracing_demo_screen.dart';
 
 final _router = GoRouter(
@@ -25,6 +26,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/lifecycle',
       builder: (context, state) => const LifecycleDemoScreen(),
+    ),
+    GoRoute(
+      path: '/performance',
+      builder: (context, state) => const PerformanceDemoScreen(),
     ),
   ],
 );
