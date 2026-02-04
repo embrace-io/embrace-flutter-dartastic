@@ -10,6 +10,7 @@ import 'screens/main_screen.dart';
 import 'screens/metrics_demo_screen.dart';
 import 'screens/performance_demo_screen.dart';
 import 'screens/resource_demo_screen.dart';
+import 'screens/sampling_demo_screen.dart';
 import 'screens/tracing_demo_screen.dart';
 
 final _router = GoRouter(
@@ -50,6 +51,10 @@ final _router = GoRouter(
     GoRoute(
       path: '/resources',
       builder: (context, state) => const ResourceDemoScreen(),
+    ),
+    GoRoute(
+      path: '/sampling',
+      builder: (context, state) => const SamplingDemoScreen(),
     ),
   ],
 );
