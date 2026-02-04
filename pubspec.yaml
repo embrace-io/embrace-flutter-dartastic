@@ -37,6 +37,7 @@ dependencies:
   dartastic_opentelemetry: ^0.9.3
   flutterrific_opentelemetry: ^0.3.4
   go_router: ^14.8.1
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
