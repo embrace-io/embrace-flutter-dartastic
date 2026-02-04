@@ -51,6 +51,10 @@ class HomePage extends StatelessWidget {
               onPressed: () => context.push('/resources'),
               child: const Text('Resources Demo'),
             ),
+            ElevatedButton(
+              onPressed: () => context.push('/sampling'),
+              child: const Text('Sampling Demo'),
+            ),
           ],
         ),
       ),
