@@ -8,8 +8,18 @@ class _FieldFocusData {
   DateTime? focusStart;
   Duration totalFocusDuration = Duration.zero;
   int focusCount = 0;
+  int charsTyped = 0;
+  int _lastTextLength = 0;
 
   _FieldFocusData(this.fieldName);
+
+  void onTextChanged(String text) {
+    final newLength = text.length;
+    if (newLength > _lastTextLength) {
+      charsTyped += newLength - _lastTextLength;
+    }
+    _lastTextLength = newLength;
+  }
 }
 
 class FormInteractionDemo extends StatefulWidget {
@@ -47,6 +57,16 @@ class _FormInteractionDemoState extends State<FormInteractionDemo> {
     _emailFocus
         .addListener(() => _onFocusChanged('email', _emailFocus.hasFocus));
     _ageFocus.addListener(() => _onFocusChanged('age', _ageFocus.hasFocus));
+
+    _nameController.addListener(
+      () => _fieldData['name']!.onTextChanged(_nameController.text),
+    );
+    _emailController.addListener(
+      () => _fieldData['email']!.onTextChanged(_emailController.text),
+    );
+    _ageController.addListener(
+      () => _fieldData['age']!.onTextChanged(_ageController.text),
+    );
   }
 
   @override
@@ -104,6 +124,7 @@ class _FormInteractionDemoState extends State<FormInteractionDemo> {
         'field.total_focus_ms',
         data.totalFocusDuration.inMilliseconds,
       );
+      childSpan.setIntAttribute('field.chars_typed', data.charsTyped);
       childSpan.end();
     }
 
