@@ -36,10 +36,6 @@ class _TracedScrollViewState extends State<TracedScrollView> {
 
     _activeSpan = FlutterOTel.tracer.startSpan('ui.scroll.start');
     _activeSpan!.setStringAttribute('scroll.container_id', widget.containerId);
-    _activeSpan!.setStringAttribute(
-      'scroll.direction',
-      widget.scrollDirection == Axis.vertical ? 'vertical' : 'horizontal',
-    );
   }
 
   void _onScrollUpdate(ScrollUpdateNotification notification) {
@@ -62,7 +58,17 @@ class _TracedScrollViewState extends State<TracedScrollView> {
   void _endScrollSpan() {
     if (_activeSpan == null) return;
 
-    final distance = (_lastScrollOffset - _scrollStartOffset).abs();
+    final delta = _lastScrollOffset - _scrollStartOffset;
+    final distance = delta.abs();
+
+    String direction;
+    if (widget.scrollDirection == Axis.vertical) {
+      direction = delta > 0 ? 'down' : 'up';
+    } else {
+      direction = delta > 0 ? 'right' : 'left';
+    }
+
+    _activeSpan!.setStringAttribute('scroll.direction', direction);
     _activeSpan!.setDoubleAttribute('scroll.distance_pixels', distance);
     _activeSpan!.setDoubleAttribute(
       'scroll.peak_velocity',
