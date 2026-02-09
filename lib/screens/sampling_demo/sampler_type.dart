@@ -22,7 +22,7 @@ enum SamplerType {
   parentBased(
     displayName: 'Parent Based',
     description:
-        'Defers sampling decision to the parent span. Root spans use Always On.',
+        'Defers sampling decision to the parent span. Root spans use probability sampling.',
   );
 
   const SamplerType({required this.displayName, required this.description});
@@ -31,17 +31,21 @@ enum SamplerType {
   final String description;
 }
 
-Sampler createSampler(SamplerType type) {
+Sampler createSampler(
+  SamplerType type, {
+  double ratio = 0.5,
+  double spansPerSecond = 10.0,
+}) {
   switch (type) {
     case SamplerType.alwaysOn:
       return AlwaysOnSampler();
     case SamplerType.alwaysOff:
       return AlwaysOffSampler();
     case SamplerType.traceIdRatio:
-      return TraceIdRatioSampler(0.5);
+      return TraceIdRatioSampler(ratio);
     case SamplerType.rateLimiting:
-      return RateLimitingSampler(10.0);
+      return RateLimitingSampler(spansPerSecond);
     case SamplerType.parentBased:
-      return ParentBasedSampler(AlwaysOnSampler());
+      return ParentBasedSampler(TraceIdRatioSampler(ratio));
   }
 }
