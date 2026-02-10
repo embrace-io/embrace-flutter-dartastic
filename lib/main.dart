@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutterrific_opentelemetry/flutterrific_opentelemetry.dart';
 
 import 'app.dart';
+import 'config.dart';
 import 'screens/lifecycle_demo/foreground_tracker.dart';
 import 'screens/lifecycle_demo/launch_tracker.dart';
 import 'screens/lifecycle_demo/lifecycle_metrics.dart';
@@ -27,12 +28,14 @@ void main() {
     WidgetsFlutterBinding.ensureInitialized();
 
     await FlutterOTel.initialize(
-      serviceName: 'embrace-flutter-dartastic',
-      serviceVersion: '1.0.0',
-      tracerName: 'main',
+      serviceName: OTelConfig.serviceName,
+      serviceVersion: OTelConfig.serviceVersion,
+      tracerName: OTelConfig.tracerName,
+      endpoint: OTelConfig.endpoint,
+      secure: OTelConfig.secure,
       resourceAttributes: {
-        'deployment.environment': 'development',
-        'service.namespace': 'testing',
+        'deployment.environment': OTelConfig.deploymentEnvironment,
+        'service.namespace': OTelConfig.serviceNamespace,
       }.toAttributes(),
     );
 
